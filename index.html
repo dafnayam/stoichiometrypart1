@@ -1,0 +1,337 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>משחק יחסים בתגובות כימיות - אפיית עוגות</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 845px;
+            height: 498px;
+            background-image: url('https://www.cjoint.com/doc/24_07/NGpfpBcnza2_%D7%A2%D7%99%D7%A6%D7%95%D7%91-%D7%9C%D7%9C%D7%90-%D7%A9%D7%9D-27-.png');
+            background-size: cover;
+            background-position: center;
+        }
+        .card {
+            background-color: rgba(224, 224, 224, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            position: absolute;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        #recipe-card { top: 22px; left: 15px; }
+#recipe-card { 
+  width: 380px; 
+  height: auto; 
+  max-height: 200px; 
+  overflow-y: auto; 
+}
+        #data-card { top: 355px; left: 355px; <input type="number" id="answer" step="0.5" min="0">}
+        #answer-card { top: 35px; left: 550px; }
+        #score-card {
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        input[type="text"] {
+            padding: 5px;
+            font-size: 16px;
+            width: 50px;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #feedback {
+            position: absolute;
+            top: 373px;
+            left: 690px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #ingredient-icon {
+            font-size: 24px;
+        }
+        .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 300px;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+}
+
+.modal-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.modal-button:hover {
+    opacity: 0.8;
+}
+@media screen and (max-width: 600px) {
+    #game-container {
+        width: 100%;
+        height: auto;
+        background-size: contain;
+        background-repeat: no-repeat;
+    }
+    .card {
+        position: relative;
+        margin: 10px auto;
+        left: 0;
+        top: 0;
+        width: 80%;
+    }
+    #score-card {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+    }
+    #feedback {
+        position: relative;
+        margin: 10px auto;
+        left: 0;
+        top: 0;
+    }
+}
+ </style>
+</head>
+<body>
+<div id="levelCompleteModal" class="modal">
+    <div class="modal-content">
+        <h2>כל הכבוד!</h2>
+        <p>עברת לשלב הבא</p>
+        <button class="modal-button" onclick="goToGenially()">לחצו עלי</button>
+        <button class="modal-button" onclick="restartGame()">משחק נוסף</button>
+    </div>
+</div>
+<div id="game-container">
+    <div id="recipe-card" class="card">
+        <h2>מתכון</h2>
+        <p id="recipe"></p>
+    </div>
+    <div id="data-card" class="card">
+        <p id="data"></p>
+    </div>
+    <div id="answer-card" class="card">
+        <p>אביא לך <input type="text" id="answer" inputmode="numeric" pattern="\d*"> <span id="ingredient"></span></p>
+        <button onclick="checkAnswer()">בדוק תשובה</button>
+    </div>
+    <div id="feedback"></div>
+    <div id="ingredient-icon"></div>
+    <div id="score-card" class="card">
+        <p>ניקוד: <span id="score">0</span></p>
+    </div>
+</div>
+
+<audio id="break-sound" src="https://drive.google.com/uc?export=download&id=19h3TGDbzshT-ksZpIiW4FkxoysMjYyDQ"></audio>
+
+<script>
+const recipes = [
+    { name: "עוגת שוקולד", ingredients: { סוכר: 4, קמח: 3, ביצים: 2 } },
+    { name: "עוגת גזר", ingredients: { סוכר: 7, קמח: 5, ביצים: 3, גזר: 2 } },
+    { name: "עוגת תפוחים", ingredients: { סוכר: 4, קמח: 5, ביצים: 7, תפוחים: 3 } },
+    { name: "עוגת דבש", ingredients: { סוכר: 5, קמח: 2, ביצים: 3, דבש: 1 } },
+    { name: "עוגת גבינה", ingredients: { סוכר: 5, קמח: 7, ביצים: 4, גבינה: 2 } }
+];
+
+const ingredientIcons = {
+    סוכר: "🧂", קמח: "🌾", ביצים: "🥚", גזר: "🥕", תפוחים: "🍎", דבש: "🍯", גבינה: "🧀"
+};
+
+const ingredientUnits = {
+    סוכר: "כוסות",
+    קמח: "כוסות",
+    דבש: "כפות",
+    גבינה: "קופסאות"
+};
+
+let currentRecipe;
+let currentAmount;
+let currentIngredient;
+let answerIngredient;
+let correctAnswer;
+let score = 0;
+let questionCount = 0;
+let consecutiveCorrectAnswers = 0;
+
+function formatAnswer(number) {
+    if (Number.isInteger(number)) {
+        return number.toString();
+    }
+    
+    const roundedNumber = (Math.round(number * 100) / 100).toString();
+    const [integerPart, decimalPart] = roundedNumber.split('.');
+    
+    if (!decimalPart) {
+        return integerPart;
+    } else if (decimalPart.length === 1) {
+        return `${integerPart}.${decimalPart}`;
+    } else {
+        return `${integerPart}.${decimalPart.slice(0, 2)}`;
+    }
+}
+
+function startGame() {
+    questionCount++;
+    currentRecipe = recipes[Math.floor(Math.random() * recipes.length)];
+    const ingredientKeys = Object.keys(currentRecipe.ingredients);
+    
+    // בניית טקסט המתכון
+    let ingredients = [];
+    
+    for (let [ingredient, amount] of Object.entries(currentRecipe.ingredients)) {
+        let unit = ingredientUnits[ingredient];
+        if (ingredient !== 'ביצים' && ingredient !== 'תפוחים' && ingredient !== 'גזר') {
+            ingredients.push(`${amount} ${unit} ${ingredient}`);
+        } else {
+            ingredients.push(`${amount} ${ingredient}`);
+        }
+    }
+    
+    // חיבור המצרכים עם סימן + ביניהם
+    let recipeText = ingredients.join(' + ');
+    
+    recipeText += ` ← 1 ${currentRecipe.name}`;
+    
+    // הצגת המתכון
+    document.getElementById('recipe').innerHTML = recipeText;
+    
+    // הצגת המתכון
+    document.getElementById('recipe').innerHTML = recipeText;
+    
+    if (questionCount <= 3 || (questionCount > 6 && Math.random() < 0.5)) {
+        currentIngredient = ingredientKeys[Math.floor(Math.random() * ingredientKeys.length)];
+        currentAmount = currentRecipe.ingredients[currentIngredient];
+        answerIngredient = 'עוגות';
+        const multiplier = Math.floor(Math.random() * 4) + 2;
+        correctAnswer = multiplier;
+        
+        let unit = currentIngredient !== 'ביצים' && currentIngredient !== 'גזר' ? ingredientUnits[currentIngredient] + ' ' : '';
+        document.getElementById('data').innerText = `השתמש ב-${currentAmount * multiplier} ${unit}${currentIngredient}`;
+        document.getElementById('ingredient').innerText = answerIngredient;
+    } else {
+        do {
+            currentIngredient = ingredientKeys[Math.floor(Math.random() * ingredientKeys.length)];
+            answerIngredient = ingredientKeys[Math.floor(Math.random() * ingredientKeys.length)];
+        } while (currentIngredient === answerIngredient);
+
+        currentAmount = Math.floor(Math.random() * 5) + 1;
+        
+        const X = currentRecipe.ingredients[currentIngredient];
+        const Z = currentRecipe.ingredients[answerIngredient];
+        const Y = currentAmount;
+        correctAnswer = (Y * Z) / X;
+        
+        let currentUnit = currentIngredient !== 'ביצים' && currentIngredient !== 'תפוחים' && currentIngredient !== 'גזר' ? ingredientUnits[currentIngredient] + ' ' : '';
+        let answerUnit = answerIngredient !== 'ביצים' && answerIngredient !== 'גזר' ? ingredientUnits[answerIngredient] + ' ' : '';
+        
+        document.getElementById('data').innerText = `השתמש ב-${currentAmount} ${currentUnit}${currentIngredient}`;
+        document.getElementById('ingredient').innerText = `${answerUnit}${answerIngredient}`;
+    }
+    
+    correctAnswer = formatAnswer(correctAnswer);
+    document.getElementById('answer').value = '';
+    document.getElementById('feedback').innerText = '';
+    document.getElementById('ingredient-icon').innerText = '';
+}
+function checkAnswer() {
+    const userAnswer = formatAnswer(parseFloat(document.getElementById('answer').value));
+    if (userAnswer === correctAnswer) {
+        score++;
+        consecutiveCorrectAnswers++;
+        if (consecutiveCorrectAnswers === 5) {
+            score += 2;
+            document.getElementById('feedback').innerText = `כל הכבוד! המצרכים נוספו לסל! בונוס של 2 נקודות! ${ingredientIcons[answerIngredient] || '🍰'}`;
+            consecutiveCorrectAnswers = 0;
+        } else {
+            document.getElementById('feedback').innerText = `כל הכבוד! המצרכים נוספו לסל! ${ingredientIcons[answerIngredient] || '🍰'}`;
+        }
+        document.getElementById('ingredient-icon').innerText = ingredientIcons[answerIngredient] || '🍰';
+    } else {
+        score = Math.max(0, score - 1);
+        consecutiveCorrectAnswers = 0;
+        document.getElementById('feedback').innerText = `אופס! התשובה לא נכונה. התשובה הנכונה היא ${correctAnswer} ${answerIngredient === 'עוגות' ? answerIngredient : (answerIngredient !== 'תפוחים' &&answerIngredient !== 'ביצים' && answerIngredient !== 'גזר' ? ingredientUnits[answerIngredient] + ' ' : '') + answerIngredient}. נסה שוב. ${ingredientIcons[answerIngredient] || '🍰'}`;
+        document.getElementById('ingredient-icon').innerText = '';
+        document.getElementById('break-sound').play();
+    }
+    document.getElementById('score').innerText = score;
+    if (score >= 11) {
+        document.getElementById('levelCompleteModal').style.display = 'block';
+        questionCount = 0;
+        return;
+    }
+    setTimeout(startGame, 2000);
+}
+function goToGenially() {
+    window.location.href = 'https://view.genially.com/669d452e079a5f2933b0e479';
+}
+function restartGame() {
+    score = 0;
+    questionCount = 0;
+    consecutiveCorrectAnswers = 0;
+    document.getElementById('score').innerText = score;
+    document.getElementById('levelCompleteModal').style.display = 'none';
+    startGame();
+}
+startGame();
+// התחל את המשחק כאשר הדף נטען
+window.onload = startGame;
+</script>
